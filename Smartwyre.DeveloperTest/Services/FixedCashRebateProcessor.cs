@@ -8,29 +8,22 @@ namespace Smartwyre.DeveloperTest.Services
     public class FixedCashRebateProcessor : IRebateProcessor
     {
         /// <inheritdoc/>
-        public decimal ProcessRebate(
-            Rebate rebate, CalculateRebateResult result, Product product)
+        public decimal? ProcessRebate(
+            Rebate rebate, Product product, CalculateRebateRequest request)
         {
-            // if there is no rebate, then the request fails to process and there is no monetary value, so return 0
-            if (rebate == null)
-            {
-                return 0;
-            }
-
-            // if the product does not support fixed cash amount rebates then the request fails to process and there is no monetary value, so return 0
+            // the product must support fixed cash amount rebates
             if (!product.SupportedIncentives.HasFlag(SupportedIncentiveType.FixedCashAmount))
             {
-                return 0;
+                return null;
             }
 
-            // if the rebate exists but there is no value on it, then there was no successful rebate calculation and there is no monetary value, so return 0
+            // a fixed cash rebate with no amount on it is a nonsense answer, so it should fail to process
             if (rebate.Amount == 0)
             {
-                return 0;
+                return null;
             }
 
-            // if all of the above validation passes, then it is a valid request so mark it as such and return the value of the rebate
-            result.Success = true;
+            // if all of the above validation passes, return the value of the rebate
             return rebate.Amount;
         }
     }
