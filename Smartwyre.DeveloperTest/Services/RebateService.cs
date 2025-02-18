@@ -7,7 +7,9 @@ namespace Smartwyre.DeveloperTest.Services;
 /// <summary>
 /// Service methods for handling rebates
 /// </summary>
-public class RebateService : IRebateService
+public class RebateService(
+    IRebateDataStore rebateDataStore, IProductDataStore productDataStore)
+    : IRebateService
 {
     /// <summary>
     /// Calculates a monetary rebate amount
@@ -18,9 +20,6 @@ public class RebateService : IRebateService
     /// incentive type that does not have a processor setup for it.</exception>
     public CalculateRebateResult Calculate(CalculateRebateRequest request)
     {
-        var rebateDataStore = new RebateDataStore();
-        var productDataStore = new ProductDataStore();
-
         Rebate rebate = rebateDataStore.GetRebate(request.RebateIdentifier);
         Product product = productDataStore.GetProduct(request.ProductIdentifier);
 
