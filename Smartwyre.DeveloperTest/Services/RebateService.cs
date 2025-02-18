@@ -4,8 +4,18 @@ using System;
 
 namespace Smartwyre.DeveloperTest.Services;
 
+/// <summary>
+/// Service methods for handling rebates
+/// </summary>
 public class RebateService : IRebateService
 {
+    /// <summary>
+    /// Calculates a monetary rebate amount
+    /// </summary>
+    /// <param name="request">The rebate calculation request.</param>
+    /// <returns><see cref="CalculateRebateResult"/></returns>
+    /// <exception cref="NotImplementedException">Thrown if the rebate has an
+    /// incentive type that does not have a processor setup for it.</exception>
     public CalculateRebateResult Calculate(CalculateRebateRequest request)
     {
         var rebateDataStore = new RebateDataStore();
