@@ -1,5 +1,6 @@
 ﻿using Smartwyre.DeveloperTest.Data;
 using Smartwyre.DeveloperTest.Types;
+using System;
 
 namespace Smartwyre.DeveloperTest.Services;
 
@@ -15,83 +16,39 @@ public class RebateService : IRebateService
 
         var result = new CalculateRebateResult();
 
-        var rebateAmount = 0m;
-
-        switch (rebate.Incentive)
+        // if we were unable to retrieve either the rebate or the product,
+        // then we can't calculate anything so skip the rest of this
+        if (product != null && rebate != null)
         {
-            case IncentiveType.FixedCashAmount:
-                if (rebate == null)
-                {
-                    result.Success = false;
-                }
-                else if (!product.SupportedIncentives.HasFlag(SupportedIncentiveType.FixedCashAmount))
-                {
-                    result.Success = false;
-                }
-                else if (rebate.Amount == 0)
-                {
-                    result.Success = false;
-                }
-                else
-                {
-                    rebateAmount = rebate.Amount;
-                    result.Success = true;
-                }
-                break;
+            IRebateProcessor processor = null;
 
-            case IncentiveType.FixedRateRebate:
-                if (rebate == null)
-                {
-                    result.Success = false;
-                }
-                else if (product == null)
-                {
-                    result.Success = false;
-                }
-                else if (!product.SupportedIncentives.HasFlag(SupportedIncentiveType.FixedRateRebate))
-                {
-                    result.Success = false;
-                }
-                else if (rebate.Percentage == 0 || product.Price == 0 || request.Volume == 0)
-                {
-                    result.Success = false;
-                }
-                else
-                {
-                    rebateAmount += product.Price * rebate.Percentage * request.Volume;
-                    result.Success = true;
-                }
-                break;
+            // identify the processor to use based on the incentive type
+            // defined on the rebate
+            switch (rebate.Incentive)
+            {
+                case IncentiveType.FixedCashAmount:
+                    processor = new FixedCashRebateProcessor();
+                    break;
+                case IncentiveType.FixedRateRebate:
+                    processor = new FixedRateRebateProcessor();
+                    break;
+                case IncentiveType.AmountPerUom:
+                    processor = new AmountPerUomRebateProcessor();
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
 
-            case IncentiveType.AmountPerUom:
-                if (rebate == null)
-                {
-                    result.Success = false;
-                }
-                else if (product == null)
-                {
-                    result.Success = false;
-                }
-                else if (!product.SupportedIncentives.HasFlag(SupportedIncentiveType.AmountPerUom))
-                {
-                    result.Success = false;
-                }
-                else if (rebate.Amount == 0 || request.Volume == 0)
-                {
-                    result.Success = false;
-                }
-                else
-                {
-                    rebateAmount += rebate.Amount * request.Volume;
-                    result.Success = true;
-                }
-                break;
-        }
+            // process the rebate and return the calculated value
+            var rebateAmount = processor.ProcessRebate(rebate, product, request);
 
-        if (result.Success)
-        {
-            var storeRebateDataStore = new RebateDataStore();
-            storeRebateDataStore.StoreCalculationResult(rebate, rebateAmount);
+            // if a value was returned after processing, set the result success value to true and store the calculated rebate value
+            if (rebateAmount.HasValue)
+            {
+                result.Success = true;
+                var storeRebateDataStore = new RebateDataStore();
+                storeRebateDataStore.StoreCalculationResult(rebate, rebateAmount.Value);
+            }
         }
 
         return result;
